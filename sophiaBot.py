@@ -3,6 +3,14 @@ from openai import OpenAI
 import google.generativeai as genai
 from dotenv import dotenv_values
 
+from models.connection_options.connection import dbConnectionHaddler
+from models.repository.empiCollection_repository import empiCollectionRepository
+
+db_haddle = dbConnectionHaddler()
+db_haddle.connect_db()
+db_connection = db_haddle.get_db_connection()
+empi_collection = empiCollectionRepository(db_connection)
+
 # Choose your model between 'GPT' and 'GEMINI'
 MODEL='GEMINI'
 
@@ -51,7 +59,14 @@ def verify(msg):
 @bot.message_handler(func=verify)
 def messageBot(msg):
     response = gpt_call(msg.text) if MODEL == 'GPT' else gemini_call(msg.text)
-    print(f"User: {msg.text}\nSophia: {response}")
     bot.send_message(msg.chat.id, response)
+    print(f"User: {msg.text}\nSophia: {response}")
+    
+    empi_collection.insert_document(
+        {
+            'request': msg.text,
+            'response': response
+        }
+    )
 
 bot.polling()
